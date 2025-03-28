@@ -7,21 +7,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
   
   <style>
-    /* Your existing CSS styles... */
-    /* Add necessary styles for the Spotify login and playlist buttons */
-    #loginButton {
-      padding: 10px;
-      font-size: 1.2rem;
+    /* Your existing styles... */
+    /* Add styles for the correct answer display */
+    .correct-answer {
+      background-color: #1DB954; /* Green for correct answer */
       color: white;
-      background-color: #1DB954;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-
-    #loginButton:hover {
-      background-color: #1ed760;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -31,14 +22,9 @@
   <div class="container">
     <h1>Guess the Song</h1>
 
-    <div id="loginButtonContainer">
-      <button id="loginButton">Log in with Spotify</button>
-    </div>
-
-    <div id="spotifyPlaylistsContainer" style="display: none;">
-      <h2>Your Playlists</h2>
-      <div id="playlists"></div>
-      <button onclick="logoutSpotify()">Log Out</button>
+    <div>
+      <label for="fileUpload">Upload your songs:</label>
+      <input type="file" id="fileUpload" multiple accept="audio/*">
     </div>
 
     <div id="audioPlayerContainer">
@@ -64,99 +50,97 @@
   <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.3/dist/jsmediatags.min.js"></script>
 
   <script>
-    let accessToken = '';
-    let playlists = [];
+    let songs = [];
     let currentSongIndex = -1;
     let score = 0;
     let audioPlayer = document.getElementById('audioPlayer');
     let optionsContainer = document.getElementById('options');
 
-    document.getElementById('loginButton').addEventListener('click', loginWithSpotify);
+    document.getElementById('fileUpload').addEventListener('change', handleFileUpload);
 
-    function loginWithSpotify() {
-      const clientId = 'f38588cd60904524801e5a8d5086e1ae';
-      const redirectUri = 'https://huss3inlol.github.io';
-      const scope = 'playlist-read-private';
-      const responseType = 'token';
-      const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_type=${responseType}`;
+    // Create snowflake trail effect
+    document.addEventListener('mousemove', (event) => {
+      if (Math.random() > 0.5) return;  // Less snowflakes by chance
 
-      window.location.href = authUrl;
-    }
+      let snowflake = document.createElement('div');
+      snowflake.classList.add('snowflake');
+      document.body.appendChild(snowflake);
 
-    // Extract the access token from the URL after Spotify login
-    window.addEventListener('load', function () {
-      const urlParams = new URLSearchParams(window.location.hash.replace('#', '?'));
-      const token = urlParams.get('access_token');
-      if (token) {
-        accessToken = token;
-        document.getElementById('loginButtonContainer').style.display = 'none';
-        fetchUserPlaylists();
-      }
+      let x = event.clientX;
+      let y = event.clientY;
+
+      snowflake.style.left = `${x - 8}px`;  // Adjust for smaller size
+      snowflake.style.top = `${y - 8}px`;  // Adjust for smaller size
+
+      setTimeout(() => {
+        snowflake.remove();
+      }, 1500);  // Snowflake stays for longer duration
     });
 
-    // Fetch Spotify playlists
-    function fetchUserPlaylists() {
-      fetch('https://api.spotify.com/v1/me/playlists', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        }
-      })
-      .then(response => response.json())
-      .then(data => {
-        playlists = data.items;
-        displayPlaylists();
+    function handleFileUpload(event) {
+      const files = event.target.files;
+
+      if (files.length < 4) {
+        alert("Please upload at least 4 songs.");
+        return;
+      }
+
+      songs = [];
+      let filesProcessed = 0;
+
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+          const audioFile = e.target.result;
+
+          jsmediatags.read(file, {
+            onSuccess: function(tag) {
+              const tags = tag.tags;
+              const song = {
+                title: removeFileExtension(file.name),
+                file: audioFile,
+                cover: tags.picture ? 'data:image/jpeg;base64,' + arrayBufferToBase64(tags.picture.data) : '',
+                duration: 180
+              };
+              songs.push(song);
+              filesProcessed++;
+
+              if (filesProcessed === files.length) {
+                generateOptions();
+              }
+            },
+            onError: function(error) {
+              console.error("Error extracting metadata:", error);
+            }
+          });
+        };
+
+        reader.readAsArrayBuffer(file);
       });
     }
 
-    // Display Spotify playlists
-    function displayPlaylists() {
-      const playlistsContainer = document.getElementById('playlists');
-      playlistsContainer.innerHTML = '';
-      playlists.forEach((playlist, index) => {
-        const playlistButton = document.createElement('button');
-        playlistButton.textContent = playlist.name;
-        playlistButton.onclick = () => loadPlaylistSongs(playlist.id);
-        playlistsContainer.appendChild(playlistButton);
-      });
-
-      document.getElementById('spotifyPlaylistsContainer').style.display = 'block';
+    function arrayBufferToBase64(buffer) {
+      let binary = '';
+      const bytes = new Uint8Array(buffer);
+      const length = bytes.byteLength;
+      for (let i = 0; i < length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return window.btoa(binary);
     }
 
-    // Load songs from a selected playlist
-    function loadPlaylistSongs(playlistId) {
-      fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        }
-      })
-      .then(response => response.json())
-      .then(data => {
-        const tracks = data.items;
-        // Choose 4 random tracks from the playlist for the game
-        songs = tracks.slice(0, 4).map(track => ({
-          title: track.track.name,
-          file: track.track.preview_url,  // Use the preview URL for the song
-          cover: track.track.album.images[0].url,
-          duration: 30
-        }));
-        generateOptions();
-        playSong();
-      });
-    }
-
-    // Log out of Spotify
-    function logoutSpotify() {
-      accessToken = '';
-      document.getElementById('spotifyPlaylistsContainer').style.display = 'none';
-      document.getElementById('loginButtonContainer').style.display = 'block';
+    function removeFileExtension(filename) {
+      return filename.split('.').slice(0, -1).join('.');
     }
 
     function playSong() {
-      if (currentSongIndex === -1 || !songs[currentSongIndex].file) return;
+      if (currentSongIndex === -1) return;
 
-      audioPlayer.src = songs[currentSongIndex].file;
+      const song = songs[currentSongIndex];
+      const audioBlob = new Blob([song.file], { type: 'audio/mp3' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      audioPlayer.src = audioUrl;
       audioPlayer.currentTime = 0;
       audioPlayer.play();
 
@@ -201,11 +185,16 @@
     }
 
     function checkAnswer(selectedIndex) {
+      const selectedButton = document.querySelector(`button[data-id='${selectedIndex}']`);
+      const correctButton = document.querySelector(`button[data-id='${currentSongIndex}']`);
+      
       if (selectedIndex === currentSongIndex) {
         document.getElementById('message').textContent = 'Correct! You guessed the song!';
         score += 1;
+        selectedButton.classList.add('correct-answer');
       } else {
         document.getElementById('message').textContent = 'Wrong! Try again.';
+        correctButton.classList.add('correct-answer');
       }
 
       document.getElementById('score').textContent = `Score: ${score}`;
@@ -214,6 +203,9 @@
         generateOptions();
         playSong();
         document.getElementById('message').textContent = '';
+        // Remove the "correct-answer" class after the round
+        selectedButton.classList.remove('correct-answer');
+        correctButton.classList.remove('correct-answer');
       }, 2000);
     }
   </script>
