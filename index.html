@@ -1,7 +1,221 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guess the Song</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  
+  <style>
+    /* Your existing CSS styles... */
+    /* Add necessary styles for the Spotify login and playlist buttons */
+    #loginButton {
+      padding: 10px;
+      font-size: 1.2rem;
+      color: white;
+      background-color: #1DB954;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    #loginButton:hover {
+      background-color: #1ed760;
+    }
+  </style>
+</head>
 <body>
-<h1>Hello World</h1>
-<p>I'm hosted with GitHub Pages.</p>
+  <div class="blur-background"></div>
+
+  <div class="container">
+    <h1>Guess the Song</h1>
+
+    <div id="loginButtonContainer">
+      <button id="loginButton">Log in with Spotify</button>
+    </div>
+
+    <div id="spotifyPlaylistsContainer" style="display: none;">
+      <h2>Your Playlists</h2>
+      <div id="playlists"></div>
+      <button onclick="logoutSpotify()">Log Out</button>
+    </div>
+
+    <div id="audioPlayerContainer">
+      <audio id="audioPlayer" controls></audio>
+      <button onclick="playSong()">Play 5 seconds</button>
+    </div>
+
+    <div id="options">
+      <button onclick="checkAnswer(0)">Option 1</button>
+      <button onclick="checkAnswer(1)">Option 2</button>
+      <button onclick="checkAnswer(2)">Option 3</button>
+      <button onclick="checkAnswer(3)">Option 4</button>
+    </div>
+
+    <div id="message"></div>
+
+    <button id="stopButton" onclick="stopSong()">Stop Song</button>
+
+    <div id="score">Score: 0</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/music-metadata-browser@5.5.1/dist/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.3/dist/jsmediatags.min.js"></script>
+
+  <script>
+    let accessToken = '';
+    let playlists = [];
+    let currentSongIndex = -1;
+    let score = 0;
+    let audioPlayer = document.getElementById('audioPlayer');
+    let optionsContainer = document.getElementById('options');
+
+    document.getElementById('loginButton').addEventListener('click', loginWithSpotify);
+
+    function loginWithSpotify() {
+      const clientId = 'f38588cd60904524801e5a8d5086e1ae';
+      const redirectUri = 'https://huss3inlol.github.io';
+      const scope = 'playlist-read-private';
+      const responseType = 'token';
+      const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_type=${responseType}`;
+
+      window.location.href = authUrl;
+    }
+
+    // Extract the access token from the URL after Spotify login
+    window.addEventListener('load', function () {
+      const urlParams = new URLSearchParams(window.location.hash.replace('#', '?'));
+      const token = urlParams.get('access_token');
+      if (token) {
+        accessToken = token;
+        document.getElementById('loginButtonContainer').style.display = 'none';
+        fetchUserPlaylists();
+      }
+    });
+
+    // Fetch Spotify playlists
+    function fetchUserPlaylists() {
+      fetch('https://api.spotify.com/v1/me/playlists', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        playlists = data.items;
+        displayPlaylists();
+      });
+    }
+
+    // Display Spotify playlists
+    function displayPlaylists() {
+      const playlistsContainer = document.getElementById('playlists');
+      playlistsContainer.innerHTML = '';
+      playlists.forEach((playlist, index) => {
+        const playlistButton = document.createElement('button');
+        playlistButton.textContent = playlist.name;
+        playlistButton.onclick = () => loadPlaylistSongs(playlist.id);
+        playlistsContainer.appendChild(playlistButton);
+      });
+
+      document.getElementById('spotifyPlaylistsContainer').style.display = 'block';
+    }
+
+    // Load songs from a selected playlist
+    function loadPlaylistSongs(playlistId) {
+      fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        const tracks = data.items;
+        // Choose 4 random tracks from the playlist for the game
+        songs = tracks.slice(0, 4).map(track => ({
+          title: track.track.name,
+          file: track.track.preview_url,  // Use the preview URL for the song
+          cover: track.track.album.images[0].url,
+          duration: 30
+        }));
+        generateOptions();
+        playSong();
+      });
+    }
+
+    // Log out of Spotify
+    function logoutSpotify() {
+      accessToken = '';
+      document.getElementById('spotifyPlaylistsContainer').style.display = 'none';
+      document.getElementById('loginButtonContainer').style.display = 'block';
+    }
+
+    function playSong() {
+      if (currentSongIndex === -1 || !songs[currentSongIndex].file) return;
+
+      audioPlayer.src = songs[currentSongIndex].file;
+      audioPlayer.currentTime = 0;
+      audioPlayer.play();
+
+      setTimeout(() => {
+        audioPlayer.pause();
+      }, 5000);
+    }
+
+    function stopSong() {
+      audioPlayer.pause();
+      audioPlayer.currentTime = 0;
+      document.getElementById('message').textContent = 'Song Stopped!';
+    }
+
+    function generateOptions() {
+      const randomIndex = Math.floor(Math.random() * songs.length);
+      currentSongIndex = randomIndex;
+
+      const options = [];
+      while (options.length < 4) {
+        const randomOptionIndex = Math.floor(Math.random() * songs.length);
+        if (!options.includes(randomOptionIndex)) {
+          options.push(randomOptionIndex);
+        }
+      }
+
+      optionsContainer.innerHTML = '';
+
+      for (let i = 0; i < 4; i++) {
+        const optionButton = document.createElement('button');
+        const optionIndex = options[i];
+        const song = songs[optionIndex];
+        optionButton.classList.add('option');
+        optionButton.innerHTML = `
+          <img src="${song.cover || 'https://via.placeholder.com/100'}" alt="${song.title}">
+          <span>${song.title}</span>
+        `;
+        optionButton.setAttribute('data-id', optionIndex);
+        optionButton.onclick = () => checkAnswer(optionIndex);
+        optionsContainer.appendChild(optionButton);
+      }
+    }
+
+    function checkAnswer(selectedIndex) {
+      if (selectedIndex === currentSongIndex) {
+        document.getElementById('message').textContent = 'Correct! You guessed the song!';
+        score += 1;
+      } else {
+        document.getElementById('message').textContent = 'Wrong! Try again.';
+      }
+
+      document.getElementById('score').textContent = `Score: ${score}`;
+
+      setTimeout(() => {
+        generateOptions();
+        playSong();
+        document.getElementById('message').textContent = '';
+      }, 2000);
+    }
+  </script>
 </body>
 </html>
