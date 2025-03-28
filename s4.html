@@ -7,12 +7,168 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
   
   <style>
-    /* Your existing styles... */
-    /* Add styles for the correct answer display */
+    body {
+      font-family: 'Poppins', sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      overflow: hidden;
+      background: url('https://i.imgur.com/nlO7vUn.gif') no-repeat center center fixed;
+      background-size: cover;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .blur-background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      backdrop-filter: blur(10px);
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: -1;
+    }
+
+    .container {
+      color: white;
+      max-width: 600px;
+      width: 100%;
+      padding: 30px;
+      background-color: rgba(0, 0, 0, 0.7);
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.8); /* Yellowish Gold glow */
+      text-align: center;
+      box-sizing: border-box;
+      position: relative;
+    }
+
+    h1, label, button, span, #message, #score {
+      text-shadow: 0 0 5px rgba(255, 255, 255, 0.6), 0 0 10px rgba(255, 255, 255, 0.5), 0 0 15px rgba(255, 255, 255, 0.4);
+    }
+
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+
+    label {
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+      display: block;
+      font-weight: 400;
+    }
+
+    input[type="file"] {
+      margin-bottom: 20px;
+      padding: 8px;
+      font-size: 1rem;
+      border-radius: 5px;
+      border: 1px solid #ddd;
+      background-color: #fff;
+    }
+
+    button {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      padding: 15px 30px;
+      font-size: 1.1rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      margin: 5px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    button:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+      transform: scale(1.05);
+    }
+
+    /* Option buttons layout */
+    #options {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px; /* Adds spacing between the buttons */
+    }
+
+    .option {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 48%; /* 48% ensures two items per row */
+      padding: 10px;
+      background-color: #444;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      box-sizing: border-box;
+    }
+
+    .option img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      margin-bottom: 10px;
+      border-radius: 5px;
+    }
+
+    .option:hover {
+      transform: scale(1.05);
+    }
+
     .correct-answer {
       background-color: #1DB954; /* Green for correct answer */
       color: white;
       font-weight: bold;
+    }
+
+    #message {
+      font-size: 1.3rem;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+
+    #score {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      font-size: 2rem;
+      font-family: 'Poppins', sans-serif;
+      color: #ffffff;
+      background-color: rgba(0, 0, 0, 0.3);
+      padding: 10px 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .snowflake {
+      position: absolute;
+      width: 15px;
+      height: 15px;
+      background-image: url('https://pngimg.com/d/snowflakes_PNG7578.png');
+      background-size: contain;
+      pointer-events: none;
+      animation: snowflake-animation 1.5s ease-out infinite;
+      opacity: 0.9;
+    }
+
+    @keyframes snowflake-animation {
+      0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(30px, 30px) scale(0.5);
+        opacity: 0;
+      }
     }
   </style>
 </head>
@@ -203,7 +359,6 @@
         generateOptions();
         playSong();
         document.getElementById('message').textContent = '';
-        // Remove the "correct-answer" class after the round
         selectedButton.classList.remove('correct-answer');
         correctButton.classList.remove('correct-answer');
       }, 2000);

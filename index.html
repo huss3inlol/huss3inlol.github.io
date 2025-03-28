@@ -7,12 +7,233 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
   
   <style>
-    /* Your existing styles... */
-    /* Add styles for the correct answer display */
+    body {
+      font-family: 'Poppins', sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      overflow: hidden;
+      background: url('https://i.imgur.com/nlO7vUn.gif') no-repeat center center fixed;
+      background-size: cover;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="blur-background"></div>
+
+  <div class="container">
+    <h1>Guess the Song</h1>
+
+    <div>
+      <label for="fileUpload">Upload your songs:</label>
+      <input type="file" id="fileUpload" multiple accept="audio/*">
+    </div>
+
+    <div id="audioPlayerContainer">
+      <audio id="audioPlayer" controls></audio>
+      <button onclick="playSong()">Play 5 seconds</button>
+    </div>
+
+    <div id="options">
+      <button onclick="checkAnswer(0)">Option 1</button>
+      <button onclick="checkAnswer(1)">Option 2</button>
+      <button onclick="checkAnswer(2)">Option 3</button>
+      <button onclick="checkAnswer(3)">Option 4</button>
+    </div>
+
+    <div id="message"></div>
+
+    <button id="stopButton" onclick="stopSong()">Stop Song</button>
+
+    <div id="score">Score: 0</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/music-metadata-browser@5.5.1/dist/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.3/dist/jsmediatags.min.js"></script>
+
+  <script>
+    let songs = [];
+    let currentSongIndex = -1;
+    let score = 0;
+    let audioPlayer = document.getElementById('audioPlayer');
+    let optionsContainer = document.getElementById('options');
+
+    document.getElementById('fileUpload').addEventListener('change', handleFileUpload);
+
+    // Create snowflake trail effect
+    document.addEventListener('mousemove', (event) => {
+      if (Math.random() > 0.5) return;  // Less snowflakes by chance
+
+      let snowflake = document.createElement('div');
+      snowflake.classList.add('snowflake');
+      document.body.appendChild(snowflake);
+
+      let x = event.clientX;
+      let y = event.clientY;
+
+      snowflake.style.left = `${x - 8}px`;  // Adjust for smaller size
+      snowflake.style.top = `${y - 8}px`;  // Adjust for smaller size
+
+      setTimeout(() => {
+        snowflake.remove();
+      }, 1500);  // Snowflake stays for longer duration
+    });
+
+    function handleFileUpload(event) {
+      const files = event.target.files;
+
+    .blur-background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      backdrop-filter: blur(10px);
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: -1;
+    }
+
+    .container {
+      color: white;
+      max-width: 600px;
+      width: 100%;
+      padding: 30px;
+      background-color: rgba(0, 0, 0, 0.7);
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.8); /* Yellowish Gold glow */
+      text-align: center;
+      box-sizing: border-box;
+      position: relative;
+    }
+
+    h1, label, button, span, #message, #score {
+      text-shadow: 0 0 5px rgba(255, 255, 255, 0.6), 0 0 10px rgba(255, 255, 255, 0.5), 0 0 15px rgba(255, 255, 255, 0.4);
+    }
+
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+
+    label {
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+      display: block;
+      font-weight: 400;
+    }
+
+    input[type="file"] {
+      margin-bottom: 20px;
+      padding: 8px;
+      font-size: 1rem;
+      border-radius: 5px;
+      border: 1px solid #ddd;
+      background-color: #fff;
+    }
+
+    button {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      padding: 15px 30px;
+      font-size: 1.1rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      margin: 5px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    button:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+      transform: scale(1.05);
+    }
+
+    /* Option buttons layout */
+    #options {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px; /* Adds spacing between the buttons */
+    }
+
+    .option {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 48%; /* 48% ensures two items per row */
+      padding: 10px;
+      background-color: #444;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      box-sizing: border-box;
+    }
+
+    .option img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      margin-bottom: 10px;
+      border-radius: 5px;
+    }
+
+    .option:hover {
+      transform: scale(1.05);
+    }
+
     .correct-answer {
       background-color: #1DB954; /* Green for correct answer */
       color: white;
       font-weight: bold;
+    }
+
+    #message {
+      font-size: 1.3rem;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+
+    #score {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      font-size: 2rem;
+      font-family: 'Poppins', sans-serif;
+      color: #ffffff;
+      background-color: rgba(0, 0, 0, 0.3);
+      padding: 10px 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .snowflake {
+      position: absolute;
+      width: 15px;
+      height: 15px;
+      background-image: url('https://pngimg.com/d/snowflakes_PNG7578.png');
+      background-size: contain;
+      pointer-events: none;
+      animation: snowflake-animation 1.5s ease-out infinite;
+      opacity: 0.9;
+    }
+
+    @keyframes snowflake-animation {
+      0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(30px, 30px) scale(0.5);
+        opacity: 0;
+      }
     }
   </style>
 </head>
@@ -203,220 +424,6 @@
         generateOptions();
         playSong();
         document.getElementById('message').textContent = '';
-        // Remove the "correct-answer" class after the round
-        selectedButton.classList.remove('correct-answer');
-        correctButton.classList.remove('correct-answer');
-      }, 2000);
-    }
-  </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Guess the Song</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-  
-  <style>
-    /* Your existing styles... */
-    /* Add styles for the correct answer display */
-    .correct-answer {
-      background-color: #1DB954; /* Green for correct answer */
-      color: white;
-      font-weight: bold;
-    }
-  </style>
-</head>
-<body>
-  <div class="blur-background"></div>
-
-  <div class="container">
-    <h1>Guess the Song</h1>
-
-    <div>
-      <label for="fileUpload">Upload your songs:</label>
-      <input type="file" id="fileUpload" multiple accept="audio/*">
-    </div>
-
-    <div id="audioPlayerContainer">
-      <audio id="audioPlayer" controls></audio>
-      <button onclick="playSong()">Play 5 seconds</button>
-    </div>
-
-    <div id="options">
-      <button onclick="checkAnswer(0)">Option 1</button>
-      <button onclick="checkAnswer(1)">Option 2</button>
-      <button onclick="checkAnswer(2)">Option 3</button>
-      <button onclick="checkAnswer(3)">Option 4</button>
-    </div>
-
-    <div id="message"></div>
-
-    <button id="stopButton" onclick="stopSong()">Stop Song</button>
-
-    <div id="score">Score: 0</div>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/music-metadata-browser@5.5.1/dist/index.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.3/dist/jsmediatags.min.js"></script>
-
-  <script>
-    let songs = [];
-    let currentSongIndex = -1;
-    let score = 0;
-    let audioPlayer = document.getElementById('audioPlayer');
-    let optionsContainer = document.getElementById('options');
-
-    document.getElementById('fileUpload').addEventListener('change', handleFileUpload);
-
-    // Create snowflake trail effect
-    document.addEventListener('mousemove', (event) => {
-      if (Math.random() > 0.5) return;  // Less snowflakes by chance
-
-      let snowflake = document.createElement('div');
-      snowflake.classList.add('snowflake');
-      document.body.appendChild(snowflake);
-
-      let x = event.clientX;
-      let y = event.clientY;
-
-      snowflake.style.left = `${x - 8}px`;  // Adjust for smaller size
-      snowflake.style.top = `${y - 8}px`;  // Adjust for smaller size
-
-      setTimeout(() => {
-        snowflake.remove();
-      }, 1500);  // Snowflake stays for longer duration
-    });
-
-    function handleFileUpload(event) {
-      const files = event.target.files;
-
-      if (files.length < 4) {
-        alert("Please upload at least 4 songs.");
-        return;
-      }
-
-      songs = [];
-      let filesProcessed = 0;
-
-      Array.from(files).forEach(file => {
-        const reader = new FileReader();
-
-        reader.onload = function(e) {
-          const audioFile = e.target.result;
-
-          jsmediatags.read(file, {
-            onSuccess: function(tag) {
-              const tags = tag.tags;
-              const song = {
-                title: removeFileExtension(file.name),
-                file: audioFile,
-                cover: tags.picture ? 'data:image/jpeg;base64,' + arrayBufferToBase64(tags.picture.data) : '',
-                duration: 180
-              };
-              songs.push(song);
-              filesProcessed++;
-
-              if (filesProcessed === files.length) {
-                generateOptions();
-              }
-            },
-            onError: function(error) {
-              console.error("Error extracting metadata:", error);
-            }
-          });
-        };
-
-        reader.readAsArrayBuffer(file);
-      });
-    }
-
-    function arrayBufferToBase64(buffer) {
-      let binary = '';
-      const bytes = new Uint8Array(buffer);
-      const length = bytes.byteLength;
-      for (let i = 0; i < length; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-      return window.btoa(binary);
-    }
-
-    function removeFileExtension(filename) {
-      return filename.split('.').slice(0, -1).join('.');
-    }
-
-    function playSong() {
-      if (currentSongIndex === -1) return;
-
-      const song = songs[currentSongIndex];
-      const audioBlob = new Blob([song.file], { type: 'audio/mp3' });
-      const audioUrl = URL.createObjectURL(audioBlob);
-      audioPlayer.src = audioUrl;
-      audioPlayer.currentTime = 0;
-      audioPlayer.play();
-
-      setTimeout(() => {
-        audioPlayer.pause();
-      }, 5000);
-    }
-
-    function stopSong() {
-      audioPlayer.pause();
-      audioPlayer.currentTime = 0;
-      document.getElementById('message').textContent = 'Song Stopped!';
-    }
-
-    function generateOptions() {
-      const randomIndex = Math.floor(Math.random() * songs.length);
-      currentSongIndex = randomIndex;
-
-      const options = [];
-      while (options.length < 4) {
-        const randomOptionIndex = Math.floor(Math.random() * songs.length);
-        if (!options.includes(randomOptionIndex)) {
-          options.push(randomOptionIndex);
-        }
-      }
-
-      optionsContainer.innerHTML = '';
-
-      for (let i = 0; i < 4; i++) {
-        const optionButton = document.createElement('button');
-        const optionIndex = options[i];
-        const song = songs[optionIndex];
-        optionButton.classList.add('option');
-        optionButton.innerHTML = `
-          <img src="${song.cover || 'https://via.placeholder.com/100'}" alt="${song.title}">
-          <span>${song.title}</span>
-        `;
-        optionButton.setAttribute('data-id', optionIndex);
-        optionButton.onclick = () => checkAnswer(optionIndex);
-        optionsContainer.appendChild(optionButton);
-      }
-    }
-
-    function checkAnswer(selectedIndex) {
-      const selectedButton = document.querySelector(`button[data-id='${selectedIndex}']`);
-      const correctButton = document.querySelector(`button[data-id='${currentSongIndex}']`);
-      
-      if (selectedIndex === currentSongIndex) {
-        document.getElementById('message').textContent = 'Correct! You guessed the song!';
-        score += 1;
-        selectedButton.classList.add('correct-answer');
-      } else {
-        document.getElementById('message').textContent = 'Wrong! Try again.';
-        correctButton.classList.add('correct-answer');
-      }
-
-      document.getElementById('score').textContent = `Score: ${score}`;
-
-      setTimeout(() => {
-        generateOptions();
-        playSong();
-        document.getElementById('message').textContent = '';
-        // Remove the "correct-answer" class after the round
         selectedButton.classList.remove('correct-answer');
         correctButton.classList.remove('correct-answer');
       }, 2000);
